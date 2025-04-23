@@ -1,0 +1,92 @@
+# Routing in Express.js
+
+Routing is one of the core features of Express.js that defines how an application responds to client requests to specific endpoints. In API development, routing provides the structure for organizing your endpoints in a logical, maintainable way.
+
+## What is Routing?
+
+At its simplest, routing is the mechanism for:
+- Matching incoming HTTP requests based on URL paths and HTTP methods
+- Executing specific handler functions that process these requests
+- Returning appropriate responses to the client
+
+In RESTful API design, routes typically represent resources and operations on those resources. For example, `/users` might represent all users, while `/users/123` represents a specific user with ID 123.
+
+## Importance in API Development
+
+Well-designed routes are crucial for API development because they:
+
+1. **Create intuitive interfaces** - Clear, consistent routing patterns make your API easier to understand and use
+2. **Enable resource-based organization** - Group related functionality together by resource
+3. **Improve maintainability** - Organized routes make code easier to navigate and update
+4. **Provide documentation structure** - Routes naturally map to API documentation
+5. **Enable versioning** - Allow for evolution of your API through route prefixes or other patterns
+6. **Support proper HTTP method usage** - Align HTTP verbs (GET, POST, PUT, DELETE) with appropriate actions
+
+## How Express.js Handles Routes
+
+Express.js provides an elegant routing system that allows you to:
+
+### 1. Define routes with HTTP methods
+
+```
+app.get('/users', (req, res) => {
+  // Handle GET request
+});
+
+app.post('/users', (req, res) => {
+  // Handle POST request
+});
+```
+
+### 2. Extract parameters from URLs
+
+```
+app.get('/users/:userId', (req, res) => {
+  const userId = req.params.userId;
+  // Handle request for specific user
+});
+```
+
+### 3. Handle query strings easily
+
+```
+// For requests like GET /search?q=express&limit=10
+app.get('/search', (req, res) => {
+  const query = req.query.q;
+  const limit = req.query.limit;
+  // Perform search with parameters
+});
+```
+
+### 4. Create modular route handlers with Router
+
+```
+const router = express.Router();
+
+router.get('/', getAllUsers);
+router.post('/', createUser);
+router.get('/:id', getUserById);
+
+app.use('/users', router);
+```
+
+## Topics Covered in This Section
+
+### [Basic Routing](/routing/basic-routing)
+Learn the fundamentals of defining routes in Express.js, including route methods, path patterns, parameters, and how to structure your route handlers for clean, maintainable code.
+
+### [Router Object](/routing/router-object)
+Discover how to use Express.js Router to create modular, mountable route handlers that can be organized into separate files, improving the structure of larger applications.
+
+## Best Practices Preview
+
+This section will help you develop good routing patterns for your Express.js APIs, including:
+
+- Organizing routes by resource
+- Using appropriate HTTP methods
+- Handling route parameters and validation
+- Structuring routes for API versioning
+- Creating descriptive, consistent route naming
+- Building nested routes for related resources
+
+Ready to dive in? Start with [Basic Routing](/routing/basic-routing) to learn the fundamentals of Express.js routing.

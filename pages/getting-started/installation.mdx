@@ -1,0 +1,210 @@
+# Installing Express.js
+
+This guide will walk you through the process of setting up a new Express.js project from scratch, covering everything you need to get your first API up and running.
+
+## Prerequisites
+
+Before starting, ensure you have the following installed:
+
+- Node.js (version 14.x or later)
+- npm (comes with Node.js) or yarn package manager
+- A code editor of your choice (VS Code, Sublime Text, etc.)
+- Terminal or command prompt
+
+## Step 1: Create a New Node.js Project
+
+First, create a directory for your project and initialize it as a Node.js application:
+
+1. Create a new project directory:
+   ```
+   mkdir my-express-api
+   cd my-express-api
+   ```
+
+2. Initialize a new Node.js project:
+   ```
+   npm init -y
+   ```
+   
+   Or if you're using yarn:
+   ```
+   yarn init -y
+   ```
+
+   This creates a `package.json` file with default values. The `-y` flag accepts all defaults automatically.
+
+## Step 2: Install Express.js
+
+Now, let's install Express.js as a dependency:
+
+```
+npm install express
+```
+
+Or with yarn:
+
+```
+yarn add express
+```
+
+## Step 3: Install Common Development Dependencies
+
+For better development experience, install these recommended development dependencies:
+
+```
+npm install nodemon --save-dev
+```
+
+Or with yarn:
+
+```
+yarn add nodemon --D
+```
+
+[Nodemon](https://nodemon.io/) helps by automatically restarting your server when file changes are detected.
+
+## Step 4: Set Up Your Project Structure
+
+A well-organized project structure is essential for maintainable code. Here's a recommended structure for Express.js API projects:
+
+```
+my-express-api/
+├── node_modules/
+├── src/
+│   ├── controllers/
+│   ├── routes/
+│   ├── middleware/
+│   ├── models/
+│   └── app.js
+├── .env
+├── .gitignore
+└── package.json
+```
+
+Create these directories:
+
+```
+mkdir -p src/controllers src/routes src/middleware src/models
+```
+
+## Step 5: Create Your First Express Server
+
+Create an `app.js` file in the `src` directory:
+
+```
+touch src/app.js
+```
+
+Open `app.js` and add the following code:
+
+```javascript
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware for parsing JSON bodies
+app.use(express.json());
+
+// A simple route
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Welcome to my Express.js API!',
+    status: 'Server is running'
+  });
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+```
+
+## Step 6: Configure package.json Scripts
+
+Update your `package.json` to include convenient scripts for running your application:
+
+```json
+{
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  }
+}
+```
+
+## Step 7: Run Your Express Server
+
+Start your server in development mode with:
+
+```
+npm run dev
+```
+
+Or with yarn:
+
+```
+yarn dev
+```
+
+Visit `http://localhost:3000` in your browser or use a tool like [Postman](https://www.postman.com/) to see your API response.
+
+## Understanding the Hello World Example
+
+Let's break down the key parts of our simple Express server:
+
+```javascript
+const express = require('express');
+const app = express();
+```
+- We import the Express.js module and create an instance of the Express application.
+
+```javascript
+app.use(express.json());
+```
+- This middleware parses incoming JSON requests, making the data available on `req.body`.
+
+```javascript
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Welcome to my Express.js API!',
+    status: 'Server is running'
+  });
+});
+```
+- This defines a GET route for the root path (`/`).
+- The callback function handles requests to this route.
+- `req` contains request information from the client.
+- `res` is the response object used to send data back to the client.
+- `res.json()` sends a JSON response with appropriate content-type headers.
+
+```javascript
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+```
+- This starts the server, listening on the specified port.
+- The callback runs once the server is ready to accept connections.
+
+## Next Steps
+
+Now that you've set up your first Express.js application, you can:
+
+1. Create more complex routes
+2. Add additional middleware
+3. Connect to a database
+4. Organize your code using the router
+5. Implement authentication
+
+Continue to the [Basic Concepts](/getting-started/basic-concepts) section to learn more about Express.js fundamentals.
+
+## Troubleshooting Common Issues
+
+### "Error: Cannot find module 'express'"
+- Make sure you've run `npm install express` or `yarn add express` in your project directory.
+
+### "Error: Address already in use"
+- Another process is using port 3000. Change the PORT value in your app or stop the other process.
+
+### Changes to code aren't reflected in the running app
+- If you're not using nodemon, you need to restart the server manually after code changes.
+- If using nodemon, check if it's watching the correct files.

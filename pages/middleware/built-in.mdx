@@ -1,0 +1,361 @@
+# Built-in Middleware in Express.js
+
+Express.js comes with several built-in middleware functions that provide essential functionality for web applications and APIs. These middleware components are part of the Express core package, requiring no additional installation, and are designed to handle common web application tasks.
+
+## Overview of Built-in Middleware
+
+Express.js provides three main built-in middleware functions:
+
+1. **express.json()**: Parses incoming requests with JSON payloads
+2. **express.urlencoded()**: Parses incoming requests with URL-encoded payloads
+3. **express.static()**: Serves static files such as images, CSS, and JavaScript
+
+Let's explore each of these in detail with examples and configuration options.
+
+## express.json()
+
+The `express.json()` middleware parses incoming requests with JSON payloads and makes the parsed data available on the `req.body` property.
+
+### Basic Usage
+
+```javascript
+const express = require('express');
+const app = express();
+
+// Use the JSON middleware
+app.use(express.json());
+
+// Now req.body will contain parsed JSON data
+app.post('/api/users', (req, res) => {
+  console.log(req.body); // JSON data from the request body
+  res.json({ received: req.body });
+});
+```
+
+### Configuration Options
+
+`express.json()` accepts an options object with the following properties:
+
+```javascript
+app.use(express.json({
+  inflate: true,       // Allows handling compressed (inflated) bodies
+  limit: '100kb',      // Controls max request body size
+  reviver: null,       // Function passed to JSON.parse()
+  strict: true,        // Only accepts arrays and objects
+  type: 'application/json', // Content-Type to parse
+  verify: undefined    // Function to verify body integrity
+}));
+```
+
+### Appropriate Use Cases
+
+- REST APIs that accept JSON data
+- Single-page application backends
+- Webhook endpoints
+- JSON configuration APIs
+- Any API endpoint that needs to receive structured data from clients
+
+### Example: Validating JSON Payload
+
+```javascript
+app.use(express.json({
+  verify: (req, res, buf, encoding) => {
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      res.status(400).json({ error: 'Invalid JSON' });
+      throw new Error('Invalid JSON');
+    }
+  }
+}));
+```
+
+## express.urlencoded()
+
+The `express.urlencoded()` middleware parses incoming requests with URL-encoded payloads (form submissions) and makes the parsed data available on the `req.body` property.
+
+### Basic Usage
+
+```javascript
+const express = require('express');
+const app = express();
+
+// Parse URL-encoded bodies (form data)
+app.use(express.urlencoded({ extended: true }));
+
+// Handle form submissions
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  // Process login
+  res.send(`Received login request for ${username}`);
+});
+```
+
+### Configuration Options
+
+`express.urlencoded()` accepts an options object with the following properties:
+
+```javascript
+app.use(express.urlencoded({
+  extended: true,     // Use qs library for parsing (allows nested objects)
+  inflate: true,      // Allows handling compressed bodies
+  limit: '100kb',     // Controls max request body size
+  parameterLimit: 1000, // Max number of parameters allowed
+  type: 'application/x-www-form-urlencoded', // Content-Type to parse
+  verify: undefined   // Function to verify body integrity
+}));
+```
+
+### Extended Option Explained
+
+The most important option is `extended`:
+
+- `extended: true` - Uses the `qs` library to parse data, allowing for rich objects and arrays to be encoded into the URL-encoded format
+- `extended: false` - Uses the `querystring` library, which does not support nested objects
+
+### Appropriate Use Cases
+
+- Processing form submissions
+- Handling traditional web form data
+- Supporting legacy clients that don't use JSON
+- Simple data submission without complex nested structures (if `extended: false`)
+
+### Example: Handling File Uploads with Form Data
+
+When combined with a multipart parser middleware like `multer`:
+
+```javascript
+const express = require('express');
+const multer = require('multer');
+const app = express();
+
+app.use(express.urlencoded({ extended: true }));
+const upload = multer({ dest: 'uploads/' });
+
+app.post('/profile', upload.single('avatar'), (req, res) => {
+  // req.body contains text fields
+  // req.file contains the uploaded file
+  res.json({
+    textFields: req.body,
+    file: req.file
+  });
+});
+```
+
+## express.static()
+
+The `express.static()` middleware serves static files such as images, CSS, JavaScript, and HTML files from a specified directory.
+
+### Basic Usage
+
+```javascript
+const express = require('express');
+const app = express();
+const path = require('path');
+
+// Serve static files from the 'public' directory
+app.use(express.static('public'));
+
+// Files in public can be accessed directly:
+// http://localhost:3000/images/logo.png
+// would serve the file from public/images/logo.png
+```
+
+### Configuration Options
+
+`express.static()` accepts a path argument and an options object:
+
+```javascript
+app.use(express.static('public', {
+  dotfiles: 'ignore',     // How to handle dotfiles (allow, deny, ignore)
+  etag: true,             // Enable/disable etag generation
+  extensions: ['html'],   // File extension fallbacks
+  fallthrough: true,      // Forward to next middleware if file not found
+  immutable: false,       // Add immutable directive to Cache-Control header
+  index: 'index.html',    // Default file to serve for directory requests
+  lastModified: true,     // Set Last-Modified header
+  maxAge: '1d',           // Set Cache-Control max-age header
+  redirect: true,         // Redirect to trailing '/' if pathname is a directory
+  setHeaders: function (res, path, stat) {
+    // Custom function to set headers on response
+    res.set('x-timestamp', Date.now());
+  }
+}));
+```
+
+### Serving from Multiple Directories
+
+You can use multiple static middleware instances to serve files from different directories:
+
+```javascript
+app.use(express.static('public'));
+app.use(express.static('files'));
+app.use('/assets', express.static('assets'));
+```
+
+### Appropriate Use Cases
+
+- Serving frontend assets (HTML, CSS, JavaScript)
+- Serving images, videos, and other media files
+- Hosting single-page applications
+- Providing access to downloadable files
+- Serving documentation and static web content
+
+### Example: Configuring Cache for Static Assets
+
+```javascript
+app.use(express.static('public', {
+  maxAge: '1d',       // Cache regular assets for 1 day
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      // Don't cache HTML files
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (path.includes('v1/')) {
+      // Cache versioned assets for a year
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+    }
+  }
+}));
+```
+
+## Common Patterns for Combining Built-in Middleware
+
+In most Express applications, these built-in middleware functions are used together to provide a complete request processing pipeline.
+
+### Basic API Server Setup
+
+```javascript
+const express = require('express');
+const app = express();
+
+// Parse JSON and URL-encoded data
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Serve static files
+app.use(express.static('public'));
+
+// Define routes
+app.get('/api/users', (req, res) => { /* ... */ });
+app.post('/api/users', (req, res) => { /* ... */ });
+
+// Start server
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
+});
+```
+
+### REST API with Version-Specific Middleware
+
+```javascript
+const express = require('express');
+const app = express();
+
+// Global middleware for all requests
+app.use(express.json());
+
+// Version-specific middleware configuration
+app.use('/api/v1', (req, res, next) => {
+  // v1 API uses only simple URL-encoded parameters
+  express.urlencoded({ extended: false })(req, res, next);
+});
+
+app.use('/api/v2', (req, res, next) => {
+  // v2 API supports complex URL-encoded objects
+  express.urlencoded({ extended: true })(req, res, next);
+});
+
+// Routes for different API versions
+app.use('/api/v1/users', v1UserRoutes);
+app.use('/api/v2/users', v2UserRoutes);
+```
+
+### Full-Stack Application Setup
+
+```javascript
+const express = require('express');
+const app = express();
+
+// Increase JSON payload limit for specific endpoints
+app.use('/api/uploads', express.json({ limit: '10mb' }));
+
+// Regular JSON parsing for all other routes
+app.use(express.json());
+
+// Parse URL-encoded data
+app.use(express.urlencoded({ extended: true }));
+
+// Serve static files with different cache settings
+app.use('/assets', express.static('public/assets', { maxAge: '1d' }));
+app.use(express.static('public', { maxAge: 0 }));
+
+// Routes
+app.use('/api', apiRoutes);
+
+// Serve SPA for any other route
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+```
+
+### Content Type-Based Middleware
+
+```javascript
+app.use((req, res, next) => {
+  const contentType = req.get('Content-Type') || '';
+  
+  if (contentType.includes('application/json')) {
+    express.json()(req, res, next);
+  } else if (contentType.includes('application/x-www-form-urlencoded')) {
+    express.urlencoded({ extended: true })(req, res, next);
+  } else {
+    next();
+  }
+});
+```
+
+## Best Practices for Using Built-in Middleware
+
+1. **Order Matters**: Place middleware in the correct order—parsing middleware like `express.json()` should come before routes that need the parsed data.
+
+2. **Security Considerations**: 
+   - Set appropriate size limits to prevent denial-of-service attacks
+   - Consider validating input after parsing
+   - Be careful when serving static files from sensitive directories
+
+3. **Performance Optimization**:
+   - Configure caching for static files appropriately
+   - Consider compression middleware for larger payloads
+   - Only mount middleware on routes that need it
+
+4. **Error Handling**: Add proper error handling after middleware:
+
+   ```javascript
+   app.use(express.json());
+   
+   // Error handler for JSON parsing errors
+   app.use((err, req, res, next) => {
+     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+       return res.status(400).json({ error: 'Invalid JSON' });
+     }
+     next(err);
+   });
+   ```
+
+5. **Conditional Application**: Apply middleware conditionally if needed:
+
+   ```javascript
+   app.use((req, res, next) => {
+     if (req.path.startsWith('/api')) {
+       express.json()(req, res, next);
+     } else {
+       next();
+     }
+   });
+   ```
+
+## Conclusion
+
+Express.js's built-in middleware functions provide essential functionality for web and API applications. By understanding how to configure and combine these middleware components, you can create a robust request processing pipeline that handles various input formats and serves static content efficiently.
+
+The next step is to learn how to create [custom middleware](/middleware/custom) to extend Express.js with your own functionality for authentication, logging, validation, and more.

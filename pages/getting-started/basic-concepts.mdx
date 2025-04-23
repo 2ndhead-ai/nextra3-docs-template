@@ -1,0 +1,297 @@
+# Basic Concepts of Express.js
+
+This guide covers the fundamental concepts of Express.js that form the foundation of API development. Understanding these core concepts is essential before diving into more advanced topics.
+
+## The Express Application Object
+
+At the heart of every Express.js application is the application object, conventionally named `app`:
+
+```javascript
+const express = require('express');
+const app = express();
+```
+
+The application object provides methods for:
+- Routing HTTP requests (`app.METHOD()` and `app.use()`)
+- Configuring middleware (`app.use()`)
+- Rendering HTML views (`app.render()`)
+- Registering template engines (`app.engine()`)
+
+This object is essentially a Javascript function designed to be passed to Node's HTTP servers as a callback to handle requests.
+
+## The Request-Response Cycle
+
+Express.js is built around the request-response cycle:
+
+1. Client sends a request to the Express server
+2. Express receives and parses the request
+3. The request goes through any matching middleware
+4. The appropriate route handler processes the request
+5. The route handler sends a response back to the client
+
+```javascript
+app.get('/api/users', (req, res) => {
+  // 'req' is the request object - contains all request information
+  console.log(req.method); // GET
+  console.log(req.path); // /api/users
+  console.log(req.headers); // Headers object
+  
+  // 'res' is the response object - used to send data back
+  res.status(200).json({
+    users: ['Alice', 'Bob', 'Charlie']
+  });
+});
+```
+
+### The Request Object (req)
+
+The `req` object represents the HTTP request and has properties for:
+
+- Request query string parameters (`req.query`)
+- URL parameters (`req.params`)
+- HTTP headers (`req.headers`)
+- Request body (`req.body`) - requires middleware like `express.json()`
+- HTTP method (`req.method`)
+- Request path (`req.path`)
+- Cookies (`req.cookies`) - requires cookie-parser middleware
+
+### The Response Object (res)
+
+The `res` object represents the HTTP response and has methods for:
+
+- Sending responses (`res.send()`, `res.json()`, `res.sendFile()`)
+- Setting HTTP status codes (`res.status()`)
+- Setting response headers (`res.set()`, `res.header()`)
+- Redirecting requests (`res.redirect()`)
+- Rendering templates (`res.render()`)
+
+## Routing
+
+Routing refers to determining how an application responds to a client request to a particular endpoint, which consists of a URI (path) and a specific HTTP request method (GET, POST, etc).
+
+```javascript
+// Basic route structure
+app.METHOD(PATH, HANDLER);
+
+// Examples
+app.get('/users', (req, res) => {
+  // Handle GET request for /users
+});
+
+app.post('/users', (req, res) => {
+  // Handle POST request for /users
+});
+
+app.put('/users/:id', (req, res) => {
+  // Handle PUT request for /users/:id
+  const userId = req.params.id;
+  // Update user with ID = userId
+});
+
+app.delete('/users/:id', (req, res) => {
+  // Handle DELETE request for /users/:id
+  const userId = req.params.id;
+  // Delete user with ID = userId
+});
+```
+
+### Route Parameters
+
+Route parameters are named URL segments used to capture values at specific positions in the URL:
+
+```javascript
+app.get('/users/:userId/books/:bookId', (req, res) => {
+  // Access the route parameters
+  const userId = req.params.userId;
+  const bookId = req.params.bookId;
+  
+  res.send(`User ID: ${userId}, Book ID: ${bookId}`);
+});
+```
+
+## Router Object
+
+The `Router` object is like a mini isolated instance of the Express application that can handle routes:
+
+```javascript
+// userRoutes.js
+const express = require('express');
+const router = express.Router();
+
+router.get('/', (req, res) => {
+  res.send('Get all users');
+});
+
+router.post('/', (req, res) => {
+  res.send('Create a new user');
+});
+
+router.get('/:id', (req, res) => {
+  res.send(`Get user with id ${req.params.id}`);
+});
+
+module.exports = router;
+
+// app.js
+const userRoutes = require('./userRoutes');
+app.use('/users', userRoutes);
+```
+
+This approach helps organize routes and create modular, mountable route handlers.
+
+## Middleware
+
+Middleware functions are functions that have access to the request object (`req`), the response object (`res`), and the next middleware function in the application's request-response cycle (commonly denoted by a variable named `next`).
+
+```javascript
+// Middleware structure
+function myMiddleware(req, res, next) {
+  // Do something with req and res
+  console.log('This middleware is running!');
+  
+  // Call next() to pass control to the next middleware
+  next();
+}
+
+// Using middleware application-wide
+app.use(myMiddleware);
+
+// Using middleware on a specific route
+app.get('/users', myMiddleware, (req, res) => {
+  // Route handler
+});
+```
+
+Middleware functions can:
+- Execute any code
+- Make changes to the request and response objects
+- End the request-response cycle
+- Call the next middleware in the stack
+
+### Common Built-in Middleware
+
+Express.js comes with several built-in middleware functions:
+
+```javascript
+// Parse JSON request bodies
+app.use(express.json());
+
+// Parse URL-encoded request bodies
+app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from a directory
+app.use(express.static('public'));
+```
+
+## How Express.js Works Under the Hood
+
+Express.js is built on top of Node.js's HTTP module and provides a more intuitive and feature-rich API for building web applications. Here's how Express works internally:
+
+1. **HTTP Server Integration**: Express creates and configures an HTTP server using Node's built-in `http` module.
+
+2. **Middleware Stack**: Express maintains an ordered array of middleware functions - when a request arrives, Express executes these functions in sequence.
+
+3. **Route Matching**: Express uses a sophisticated algorithm to match incoming requests to registered route handlers based on HTTP method and path patterns.
+
+4. **Response Handling**: Express wraps Node's native response object with additional methods to simplify common tasks.
+
+Here's a simplified version of what Express is doing behind the scenes:
+
+```javascript
+// Simplified Express-like implementation
+function createApplication() {
+  const app = function(req, res) {
+    let currentMiddlewareIndex = 0;
+    
+    // Process middleware stack
+    function next() {
+      const middleware = app.stack[currentMiddlewareIndex++];
+      if (middleware) {
+        middleware(req, res, next);
+      }
+    }
+    
+    next();
+  };
+  
+  app.stack = [];
+  
+  app.use = function(middleware) {
+    app.stack.push(middleware);
+    return app;
+  };
+  
+  app.listen = function(port, callback) {
+    return require('http').createServer(app).listen(port, callback);
+  };
+  
+  return app;
+}
+```
+
+## Express.js vs. Node.js HTTP Module
+
+Understanding the differences between Express.js and Node's native HTTP module helps appreciate what Express brings to the table:
+
+| Feature | Node.js HTTP Module | Express.js |
+|---------|---------------------|------------|
+| **Routing** | Manual routing using if/else or switch statements on request URL | Built-in, pattern-based routing with support for HTTP methods |
+| **Middleware** | No built-in middleware concept | Rich middleware ecosystem with simple implementation |
+| **Request Parsing** | Manual parsing of request body | Built-in middleware for parsing JSON, form data |
+| **Static Files** | Requires manual implementation | Simple static file serving with `express.static()` |
+| **Response Methods** | Basic response writing | Enhanced response methods like `res.json()`, `res.send()` |
+| **Error Handling** | Manual error handling | Centralized error handling with middleware |
+| **Code Organization** | Harder to organize large applications | Modular routing with Router object |
+
+### Example Comparison: Hello World
+
+**Using Node.js HTTP module:**
+
+```javascript
+const http = require('http');
+
+const server = http.createServer((req, res) => {
+  if (req.url === '/' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ message: 'Hello World!' }));
+  } else {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not Found' }));
+  }
+});
+
+server.listen(3000, () => {
+  console.log('Server running on port 3000');
+});
+```
+
+**Using Express.js:**
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/', (req, res) => {
+  res.json({ message: 'Hello World!' });
+});
+
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not Found' });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
+});
+```
+
+## Summary
+
+Express.js provides a layer of abstraction over Node's HTTP module that makes building APIs and web applications more intuitive through:
+
+- A simple application object (`app`) for configuration and server setup
+- Middleware architecture for processing requests
+- Advanced routing capabilities
+- Enhanced request and response objects
+- Modular organization with the Router object
+
+In the next sections, we'll dive deeper into each of these concepts and explore more advanced patterns for building robust Express.js applications.

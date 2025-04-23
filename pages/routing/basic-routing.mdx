@@ -1,0 +1,362 @@
+# Basic Routing in Express.js
+
+Routing in Express.js is the mechanism that determines how an application responds to client requests directed at specific endpoints, which are defined by a URI (path) and an HTTP request method. This guide covers the essentials of setting up and working with Express routes.
+
+## HTTP Route Methods
+
+Express.js provides methods corresponding to all HTTP verbs, allowing you to structure your API according to RESTful principles. Each method maps to an operation on a resource:
+
+```javascript
+// GET request to retrieve data
+app.get('/users', (req, res) => {
+  res.json(users);
+});
+
+// POST request to create a new resource
+app.post('/users', (req, res) => {
+  const newUser = req.body;
+  users.push(newUser);
+  res.status(201).json(newUser);
+});
+
+// PUT request to update an entire resource
+app.put('/users/:id', (req, res) => {
+  const userId = req.params.id;
+  // Update logic here
+  res.json(updatedUser);
+});
+
+// PATCH request to partially update a resource
+app.patch('/users/:id', (req, res) => {
+  const userId = req.params.id;
+  // Partial update logic here
+  res.json(partiallyUpdatedUser);
+});
+
+// DELETE request to remove a resource
+app.delete('/users/:id', (req, res) => {
+  const userId = req.params.id;
+  // Delete logic here
+  res.status(204).end();
+});
+```
+
+### Common Route Methods
+
+| HTTP Method | Description | Typical Use |
+|-------------|-------------|------------|
+| GET | Read/retrieve data | Fetch resources without modification |
+| POST | Create data | Create new resources |
+| PUT | Update/replace data | Replace a resource entirely |
+| PATCH | Update/modify data | Modify parts of a resource |
+| DELETE | Delete data | Remove resources |
+| HEAD | GET without response body | Check if resource exists |
+| OPTIONS | Get supported methods | CORS preflight checks |
+
+### All HTTP Methods
+
+You can also use `app.all()` to handle all HTTP methods for a particular route:
+
+```javascript
+app.all('/api', (req, res, next) => {
+  console.log(`Request type: ${req.method}`);
+  next();
+});
+```
+
+This is useful for global processing that should happen for all requests to a specific route regardless of HTTP method.
+
+## Route Paths
+
+Route paths define the endpoints at which requests can be made. They can be:
+
+### 1. Static Paths
+
+Simple string paths that match exactly:
+
+```javascript
+app.get('/users', (req, res) => {
+  // Handle route for /users
+});
+
+app.get('/products/featured', (req, res) => {
+  // Handle route for /products/featured
+});
+```
+
+### 2. Pattern-Based Paths
+
+Paths with special characters that create flexible route matching:
+
+#### String patterns
+
+```javascript
+// ? makes the previous character optional
+app.get('/user?s', (req, res) => {
+  // Matches '/user' or '/users'
+});
+
+// + matches one or more occurrences of previous character
+app.get('/product+', (req, res) => {
+  // Matches '/product', '/productt', '/producttt', etc.
+});
+
+// * matches any character in that position
+app.get('/file*', (req, res) => {
+  // Matches '/file', '/files', '/filename', '/files/image.jpg', etc.
+});
+```
+
+#### Regular Expression Paths
+
+For even more flexibility, you can use regular expressions:
+
+```javascript
+// Match paths ending with 'fly'
+app.get(/.*fly$/, (req, res) => {
+  // Matches '/butterfly', '/dragonfly', etc.
+});
+
+// Match specific numeric formats
+app.get(/^\/product\/\d{3}$/, (req, res) => {
+  // Matches '/product/123' but not '/product/abc'
+});
+```
+
+## Route Parameters
+
+Route parameters are named URL segments used to capture values at specific positions in the URL. The captured values are stored in `req.params` by their name:
+
+```javascript
+app.get('/users/:userId', (req, res) => {
+  const userId = req.params.userId;
+  res.send(`User ID: ${userId}`);
+});
+```
+
+### Multiple Parameters
+
+You can define multiple parameters in a single route:
+
+```javascript
+app.get('/users/:userId/posts/:postId', (req, res) => {
+  const { userId, postId } = req.params;
+  res.send(`Accessing post ${postId} by user ${userId}`);
+});
+```
+
+### Optional Parameters
+
+To make a parameter optional, add a question mark after it:
+
+```javascript
+app.get('/users/:userId?', (req, res) => {
+  if (req.params.userId) {
+    return res.send(`User details for ID: ${req.params.userId}`);
+  }
+  res.send('List of all users');
+});
+```
+
+### Parameter Constraints
+
+By default, route parameters match any character until the next `/` or end of URL. You can use regular expressions to restrict what a parameter can match:
+
+```javascript
+// Only matches numeric IDs
+app.get('/users/:userId(\\d+)', (req, res) => {
+  const userId = req.params.userId; // Will only be digits
+  res.send(`User ID: ${userId}`);
+});
+
+// Custom pattern matching
+app.get('/files/:filename([a-zA-Z0-9_]+\\.pdf)', (req, res) => {
+  // Only matches alphanumeric filenames with .pdf extension
+  res.send(`PDF file: ${req.params.filename}`);
+});
+```
+
+## Query String Handling
+
+Query strings provide a way to pass additional parameters to routes. Express automatically parses query strings and makes them available through `req.query`:
+
+```javascript
+// For a request to /search?q=express&limit=10
+app.get('/search', (req, res) => {
+  const query = req.query.q;
+  const limit = parseInt(req.query.limit) || 10; // Default to 10 if not provided
+  
+  res.json({
+    searchTerm: query,
+    limit: limit,
+    // Search results would go here
+  });
+});
+```
+
+### Common Query String Use Cases
+
+1. **Pagination**:
+```javascript
+app.get('/products', (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const perPage = parseInt(req.query.perPage) || 20;
+  
+  // Get products based on pagination
+  res.json({
+    page,
+    perPage,
+    products: [] // Would be actual data
+  });
+});
+```
+
+2. **Filtering**:
+```javascript
+app.get('/products', (req, res) => {
+  const category = req.query.category;
+  const minPrice = parseFloat(req.query.minPrice);
+  const maxPrice = parseFloat(req.query.maxPrice);
+  
+  // Filter products based on query parameters
+  res.json({
+    filters: { category, minPrice, maxPrice },
+    products: [] // Would be filtered data
+  });
+});
+```
+
+3. **Sorting**:
+```javascript
+app.get('/products', (req, res) => {
+  const sortBy = req.query.sortBy || 'price';
+  const order = req.query.order || 'asc';
+  
+  // Sort products based on parameters
+  res.json({
+    sorting: { sortBy, order },
+    products: [] // Would be sorted data
+  });
+});
+```
+
+## Route Handlers
+
+Route handlers are callback functions that execute when a matching route is found. They have access to the request and response objects and can:
+
+### Single Handler
+
+```javascript
+app.get('/users', (req, res) => {
+  res.json(users);
+});
+```
+
+### Multiple Handlers (Middleware Chain)
+
+```javascript
+const validateUser = (req, res, next) => {
+  // Validation logic
+  if (!req.body.name) {
+    return res.status(400).json({ error: 'Name is required' });
+  }
+  next();
+};
+
+const createUser = (req, res) => {
+  // Create user logic
+  res.status(201).json({ id: 123, ...req.body });
+};
+
+// Using multiple handlers in a route
+app.post('/users', validateUser, createUser);
+```
+
+### Array of Handlers
+
+```javascript
+const authenticate = (req, res, next) => {
+  // Authentication logic
+  next();
+};
+
+const authorize = (req, res, next) => {
+  // Authorization logic
+  next();
+};
+
+const processData = (req, res) => {
+  // Process data after auth checks
+  res.json({ success: true });
+};
+
+app.get('/admin/data', [authenticate, authorize], processData);
+```
+
+## Handling Route Errors
+
+### Try/Catch in Async Handlers
+
+```javascript
+app.get('/users/:id', async (req, res) => {
+  try {
+    const user = await findUser(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+```
+
+### Express Error Handling Middleware
+
+```javascript
+app.get('/users/:id', async (req, res, next) => {
+  try {
+    const user = await findUser(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    next(error); // Pass errors to the error handler
+  }
+});
+
+// Error handling middleware (must be defined last)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
+```
+
+## Best Practices for Basic Routing
+
+1. **Use appropriate HTTP methods** for each operation
+2. **Keep routes organized** by resource type
+3. **Validate parameters** as early as possible in the route handling chain
+4. **Provide meaningful error responses** with appropriate HTTP status codes
+5. **Document all routes** clearly for API consumers
+6. **Use consistent naming conventions** throughout your API
+7. **Handle missing routes** with a 404 handler:
+
+```javascript
+// After all other routes are defined
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+```
+
+## Next Steps
+
+Now that you understand basic routing in Express.js, you can move on to more advanced topics like using the [Router Object](/routing/router-object) to organize routes in larger applications.
+
+For more complex API scenarios, consider implementing:
+- Route validation with libraries like Joi or express-validator
+- Route documentation with OpenAPI/Swagger
+- Authentication middleware to protect routes
+- Rate limiting to prevent abuse of your API endpoints
